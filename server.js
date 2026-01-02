@@ -11,6 +11,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use("/public", express.static("public"));
 
+// Keep Render awake (UptimeRobot can ping with HEAD)
+app.head("/keepitwarm", (_req, res) => {
+  res.status(200).end();
+});
+
+// Useful if you test in a browser too
+app.get("/keepitwarm", (_req, res) => {
+  res.status(200).send("ok");
+});
+
 // Routes
 const guidesRoutes = require("./routes/guides");
 const toursRoutes = require("./routes/tours");
