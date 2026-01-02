@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,23 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use("/public", express.static("public"));
+
+// --- Supabase admin client (SERVER ONLY) ---
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn(
+    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. /api/auth/invite will fail."
+  );
+}
+
+const supabaseAdmin =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false },
+      })
+    : null;
 
 // Keep Render awake (UptimeRobot can ping with HEAD)
 app.head("/keepitwarm", (_req, res) => {
@@ -19,6 +37,51 @@ app.head("/keepitwarm", (_req, res) => {
 // Useful if you test in a browser too
 app.get("/keepitwarm", (_req, res) => {
   res.status(200).send("ok");
+});
+
+// --- AUTH: Invite-only signup (whitelist) ---
+app.post("/api/auth/invite", async (req, res) => {
+  try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Supabase admin not configured" });
+    }
+
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+
+    // 1) check whitelist
+    const { data: allowed, error: werr } = await supabaseAdmin
+      .from("admin_whitelist")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (werr) {
+      return res.status(500).json({ error: "Whitelist query failed" });
+    }
+    if (!allowed) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // 2) send invite email (user sets password via link)
+    // change this to your real page
+    const redirectTo = "https://guiding.onrender.com/set-password";
+
+    const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email,
+      { redirectTo }
+    );
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.json({ ok: true, userId: data?.user?.id ?? null });
+  } catch (e) {
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
 // Routes
@@ -50,9 +113,5 @@ app.get("/reset-password", (req, res) => {
   // On utilise un custom scheme "guiding://"
   const appLink = `guiding://reset-password?${qs}`;
 
-  res
-    .status(302)
-    .set("Location", appLink)
-    .send("Redirecting…");
+  res.status(302).set("Location", appLink).send("Redirecting…");
 });
-
