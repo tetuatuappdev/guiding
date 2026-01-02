@@ -42,3 +42,17 @@ app.get("/", (_req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+app.get("/reset-password", (req, res) => {
+  // Supabase va appeler cette URL avec des params dans l’URL (token / code etc)
+  const qs = req.url.includes("?") ? req.url.split("?")[1] : "";
+  // Renvoie vers un lien "app" géré par Expo Router via Linking
+  // On utilise un custom scheme "guiding://"
+  const appLink = `guiding://reset-password?${qs}`;
+
+  res
+    .status(302)
+    .set("Location", appLink)
+    .send("Redirecting…");
+});
+
