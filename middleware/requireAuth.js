@@ -1,4 +1,5 @@
-const { supabaseAdmin } = require("../supabaseAdmin");
+const { supabaseAuth, supabaseService } = require("../supabaseAdmin");
+
 
 async function requireAuth(req, res, next) {
   try {
