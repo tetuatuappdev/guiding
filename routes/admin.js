@@ -5,7 +5,7 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
   const router = express.Router();
 
   router.post("/tours/:slotId/mark-paid", requireAdmin, async (req, res) => {
-    console.log("mark-paid: start", req.params.id);
+    console.log("mark-paid: start", req.params.slotId);
 
     try {
       if (!supabaseAdmin) return res.status(500).json({ error: "Supabase admin not configured" });
@@ -66,7 +66,6 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
       });
 
       // 6) upload to storage (private bucket)
-      console.log("uploading invoice with service role:", (SUPABASE_SERVICE_ROLE_KEY || "").slice(0, 8));
       const path = `invoices/${slotId}/invoice-${slotId}.pdf`;
       const { error: upErr } = await supabaseAdmin.storage
         .from("invoices")
@@ -116,9 +115,13 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
         onlinePersons,
       });
     } catch (e) {
-      console.log("mark-paid failed", e);
-      return res.status(500).json({ error: "Server error" });
-    }
+  console.error("mark-paid failed", e);
+  return res.status(500).json({
+    error: "Server error",
+    details: e?.message || String(e),
+    stack: process.env.NODE_ENV === "production" ? undefined : e?.stack,
+  });
+}
   });
 
   return router;
