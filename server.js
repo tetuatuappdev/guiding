@@ -29,6 +29,38 @@ const supabaseAdmin =
       })
     : null;
 
+async function requireAdmin(req, res, next) {
+  try {
+    if (!supabaseAdmin) return res.status(500).json({ error: "Supabase admin not configured" });
+
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    if (!token) return res.status(401).json({ error: "Missing bearer token" });
+
+    const { data: userData, error: uErr } = await supabaseAdmin.auth.getUser(token);
+    if (uErr || !userData?.user) return res.status(401).json({ error: "Invalid token" });
+
+    const uid = userData.user.id;
+
+    const { data: adminRow, error: aErr } = await supabaseAdmin
+  .from("admins")
+  .select("user_id")
+  .eq("user_id", uid)
+  .maybeSingle();
+
+if (aErr) return res.status(500).json({ error: "Admin check failed" });
+if (!adminRow) return res.status(403).json({ error: "Forbidden" });
+    req.user = userData.user;
+    next();
+  } catch (e) {
+    return res.status(500).json({ error: "Server error" });
+  }
+}
+
+const makeAdminRoutes = require("./routes/admin");
+app.use("/api/admin", makeAdminRoutes(supabaseAdmin, requireAdmin));
+
+
 // Keep Render awake (UptimeRobot can ping with HEAD)
 app.head("/keepitwarm", (_req, res) => {
   res.status(200).end();
