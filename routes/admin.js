@@ -66,6 +66,7 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
       });
 
       // 6) upload to storage (private bucket)
+      console.log("uploading invoice with service role:", (SUPABASE_SERVICE_ROLE_KEY || "").slice(0, 8));
       const path = `invoices/${slotId}/invoice-${slotId}.pdf`;
       const { error: upErr } = await supabaseAdmin.storage
         .from("invoices")

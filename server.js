@@ -22,10 +22,15 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   );
 }
 
+console.log("SUPABASE_URL set:", !!SUPABASE_URL);
+console.log("SERVICE_ROLE set:", !!SUPABASE_SERVICE_ROLE_KEY);
+console.log("SERVICE_ROLE looks like service:", (SUPABASE_SERVICE_ROLE_KEY || "").startsWith("eyJ"));
+
+
 const supabaseAdmin =
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false },
+        auth: { persistSession: false, autoRefreshToken: false },
       })
     : null;
 
