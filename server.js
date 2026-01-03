@@ -29,17 +29,6 @@ const supabaseService = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
 });
 
 console.log("SUPABASE_URL set:", !!SUPABASE_URL);
-console.log("SERVICE_ROLE set:", !!SUPABASE_SERVICE_ROLE_KEY);
-console.log("SERVICE_ROLE looks like service:", (SUPABASE_SERVICE_ROLE_KEY || "").startsWith("eyJ"));
-console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
-
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
 
 async function requireAdmin(req, res, next) {
   try {
