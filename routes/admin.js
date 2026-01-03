@@ -5,6 +5,8 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
   const router = express.Router();
 
   router.post("/tours/:slotId/mark-paid", requireAdmin, async (req, res) => {
+    console.log("mark-paid: start", req.params.id);
+
     try {
       if (!supabaseAdmin) return res.status(500).json({ error: "Supabase admin not configured" });
 
@@ -161,14 +163,3 @@ function buildInvoicePdfBuffer(payload) {
     }
   });
 }
-
-module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
-  const router = express.Router();
-
-  router.post("/tours/:slotId/mark-paid", requireAdmin, async (req, res) => {
-    // tout le code invoice ici
-  });
-
-  return router;
-};
-
