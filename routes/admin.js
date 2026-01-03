@@ -74,7 +74,10 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
           upsert: true,
         });
 
-      if (upErr) return res.status(500).json({ error: "Failed to upload PDF" });
+      if (upErr) {
+  console.error("PDF upload error:", upErr);
+  return res.status(500).json({ error: "Failed to upload PDF", details: upErr.message });
+}
 
       // 7) upsert invoice row
       const { error: iErr } = await supabaseAdmin
