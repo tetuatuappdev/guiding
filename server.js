@@ -25,6 +25,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 console.log("SUPABASE_URL set:", !!SUPABASE_URL);
 console.log("SERVICE_ROLE set:", !!SUPABASE_SERVICE_ROLE_KEY);
 console.log("SERVICE_ROLE looks like service:", (SUPABASE_SERVICE_ROLE_KEY || "").startsWith("eyJ"));
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
 
 
 const supabaseAdmin =
