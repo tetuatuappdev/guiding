@@ -205,7 +205,7 @@ app.post("/api/auth/signup", async (req, res) => {
       email,
       password,
       // choose your policy:
-      email_confirm: false, // set true if you want NO email verification friction
+      email_confirm: true, // set true if you want NO email verification friction
     });
 
     if (error) {
