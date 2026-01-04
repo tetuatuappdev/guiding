@@ -71,7 +71,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
 
 
       // 5) build PDF buffer
-      onst pdfBuffer = await buildInvoicePdfBuffer({
+      const pdfBuffer = await buildInvoicePdfBuffer({
   invoiceNo: `INV-${slotId.slice(0, 8)}`,
   guideName: guide.name,
   clientName: "Marketing Cheshire",
