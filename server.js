@@ -78,46 +78,53 @@ app.get("/keepitwarm", (_req, res) => {
 
 // --- AUTH: Invite-only signup (whitelist) ---
 app.post("/api/auth/invite", async (req, res) => {
-  try {
-    // Uses service role key (supabaseService)
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  console.log("[INVITE] hit", { email });
 
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "Invalid email" });
-    }
-
-    // 1) check allowlist
-const { data: allowed, error: werr } = await supabaseService
-  .from("invite_allowlist")
-  .select("id,email,role")
-  .ilike("email", email)
-  .maybeSingle();
-
-if (werr) return res.status(500).json({ error: "Allowlist query failed" });
-if (!allowed) return res.status(403).json({ error: "Forbidden" });
-
-    // 2) send invite email (user sets password via link)
-    // change this to your real page
-    const redirectTo = "https://guiding.onrender.com/set-password";
-
-    const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(
-      email,
-      { redirectTo }
-    );
-
-    await supabaseService
-  .from("invite_allowlist")
-  .update({ invited_at: new Date().toISOString() })
-  .eq("id", allowed.id);
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    return res.json({ ok: true, userId: data?.user?.id ?? null });
-  } catch (e) {
-    return res.status(500).json({ error: "Server error" });
+  if (!email || !email.includes("@")) {
+    console.log("[INVITE] invalid email");
+    return res.status(400).json({ error: "Invalid email" });
   }
+
+  const { data: allowed, error: werr } = await supabaseService
+    .from("invite_allowlist")
+    .select("id,email,role")
+    .eq("email", email)          // évite les surprises, pas ilike
+    .maybeSingle();
+
+  if (werr) {
+    console.log("[INVITE] allowlist query failed", werr);
+    return res.status(500).json({ error: "Allowlist query failed" });
+  }
+  if (!allowed) {
+    console.log("[INVITE] forbidden (not allowlisted)");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const redirectTo = "https://guiding.onrender.com/set-password";
+
+  const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(
+    email,
+    { redirectTo }
+  );
+
+  if (error) {
+    console.log("[INVITE] inviteUserByEmail failed", error);
+    return res.status(500).json({ error: error.message });
+  }
+
+  const { error: uerr } = await supabaseService
+    .from("invite_allowlist")    // <-- corrigé
+    .update({ invited_at: new Date().toISOString() })
+    .eq("id", allowed.id);
+
+  if (uerr) {
+    console.log("[INVITE] allowlist update failed", uerr);
+    return res.status(500).json({ error: "Invited but failed to update allowlist" });
+  }
+
+  console.log("[INVITE] ok", { userId: data?.user?.id });
+  return res.json({ ok: true, userId: data?.user?.id ?? null });
 });
 
 // Routes
