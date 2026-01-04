@@ -86,19 +86,15 @@ app.post("/api/auth/invite", async (req, res) => {
       return res.status(400).json({ error: "Invalid email" });
     }
 
-    // 1) check whitelist
-    const { data: allowed, error: werr } = await supabaseService
-      .from("admin_whitelist")
-      .select("email")
-      .eq("email", email)
-      .maybeSingle();
+    // 1) check allowlist
+const { data: allowed, error: werr } = await supabaseService
+  .from("invite_allowlist")
+  .select("id,email,role")
+  .ilike("email", email)
+  .maybeSingle();
 
-    if (werr) {
-      return res.status(500).json({ error: "Whitelist query failed" });
-    }
-    if (!allowed) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+if (werr) return res.status(500).json({ error: "Allowlist query failed" });
+if (!allowed) return res.status(403).json({ error: "Forbidden" });
 
     // 2) send invite email (user sets password via link)
     // change this to your real page
@@ -108,6 +104,11 @@ app.post("/api/auth/invite", async (req, res) => {
       email,
       { redirectTo }
     );
+
+    await supabaseService
+  .from("invite_allowlist")
+  .update({ invited_at: new Date().toISOString() })
+  .eq("id", allowed.id);
 
     if (error) {
       return res.status(500).json({ error: error.message });
