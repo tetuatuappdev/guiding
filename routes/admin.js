@@ -25,12 +25,12 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
 
       // 2) guide name
       const { data: guide, error: gErr } = await supabaseAdmin
-        .from("guides_public")
-        .select("id, name")
-        .eq("id", slot.guide_id)
-        .single();
+  .from("guides")
+  .select("id, name, bank_sort_code, bank_account_number, bank_payee_name, bank_email")
+  .eq("id", slot.guide_id)
+  .single();
 
-      if (gErr) return res.status(500).json({ error: "Failed to load guide" });
+if (gErr) return res.status(500).json({ error: "Failed to load guide" });
 
       // 3) ticket totals
       const { data: scans, error: tErr } = await supabaseAdmin
@@ -44,26 +44,49 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
       const vicPersons = (scans || []).filter(r => r.kind !== "online").reduce((a, r) => a + (r.persons ?? 1), 0);
       const onlinePersons = (scans || []).filter(r => r.kind === "online").reduce((a, r) => a + (r.persons ?? 1), 0);
 
+      const { data: cfgRows, error: cfgErr } = await supabaseAdmin
+  .from("configuration")
+  .select("key, value_numeric");
+
+if (cfgErr) {
+  return res.status(500).json({ error: "Failed to load configuration" });
+}
+
+const cfg = Object.fromEntries(
+  (cfgRows || []).map(r => [r.key, Number(r.value_numeric)])
+);
+
+const PRICE_PER_PERSON_PENCE = Math.round(cfg.price_per_person_gbp * 100);
+const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person_gbp * 100);
+
+
       // 4) decide amounts
       // amount_pence could be passed from UI, or computed. Keep it explicit for now.
       const totalPence = amount_pence;
       const feesPence = Number(fees_pence || 0);
       const netPence = totalPence != null ? Math.max(0, Number(totalPence) - feesPence) : null;
+      const grossPence = personsTotal * PRICE_PER_PERSON_PENCE;
+const vicCommissionPence = vicPersons * VIC_COMMISSION_PER_PERSON_PENCE;
+const totalPayablePence = grossPence - vicCommissionPence;
+
 
       // 5) build PDF buffer
-      const pdfBuffer = await buildInvoicePdfBuffer({
-        invoiceNo: `INV-${slotId.slice(0, 8)}`,
-        guideName: guide?.name ?? "Unknown",
-        slotDate: slot.slot_date,
-        slotTime: String(slot.slot_time || "").slice(0, 5),
-        personsTotal,
-        vicPersons,
-        onlinePersons,
-        currency,
-        totalPence,
-        feesPence,
-        netPence,
-      });
+      onst pdfBuffer = await buildInvoicePdfBuffer({
+  invoiceNo: `INV-${slotId.slice(0, 8)}`,
+  guideName: guide.name,
+  clientName: "Marketing Cheshire",
+  invoiceDateISO: slot.slot_date,
+  bookingRef: "",
+  tourLabel: "Chester Tour",
+  personsTotal,
+  grossPence,
+  vicCommissionPence,
+  totalPayablePence,
+  bankPayeeName: guide.bank_payee_name,
+  bankSortCode: guide.bank_sort_code,
+  bankAccountNumber: guide.bank_account_number,
+  bankEmail: guide.bank_email,
+});
 
       // 6) upload to storage (private bucket)
       const path = `invoices/${slotId}/invoice-${slotId}.pdf`;
@@ -97,18 +120,19 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
       if (iErr) return res.status(500).json({ error: "Failed to write tour_invoices" });
 
       // 8) update payment status
-      const { error: pErr } = await supabaseAdmin
+      await supabaseAdmin
   .from("tour_payments")
   .upsert(
     {
       slot_id: slotId,
-      guide_id: slot.guide_id,   // <-- add this
+      guide_id: slot.guide_id,
       status: "paid",
-      amount_pence: totalPence,
-      currency,
+      amount_pence: totalPayablePence,
+      currency: "GBP",
     },
     { onConflict: "slot_id" }
   );
+
 
       if (pErr) {
   console.error("tour_payments upsert error:", pErr);
@@ -140,39 +164,91 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
 function buildInvoicePdfBuffer(payload) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: "A4", margin: 50 });
+      const doc = new PDFDocument({ size: "A4", margin: 60 });
 
       const chunks = [];
       doc.on("data", (c) => chunks.push(c));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
 
-      doc.fontSize(20).text("Invoice", { align: "left" });
-      doc.moveDown(0.5);
+      const money = (pence) => `£${(Number(pence || 0) / 100).toFixed(0)}`; // example shows no decimals
+      const dateFmt = (iso) => {
+        // expects YYYY-MM-DD
+        const d = new Date(iso + "T00:00:00Z");
+        const day = d.getUTCDate();
+        const suffix =
+          day % 10 === 1 && day !== 11 ? "st" :
+          day % 10 === 2 && day !== 12 ? "nd" :
+          day % 10 === 3 && day !== 13 ? "rd" : "th";
+        const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        return `${day}${suffix} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      };
 
-      doc.fontSize(10).fillColor("#444");
-      doc.text(`Invoice No: ${payload.invoiceNo}`);
-      doc.text(`Date: ${new Date().toISOString().slice(0, 10)}`);
-      doc.moveDown(1);
+      // --- Header ---
+      doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", { align: "left" });
+      doc.font("Helvetica").fontSize(10).fillColor("#000");
+doc.text(`Invoice reference: ${payload.invoiceNo}`);
+doc.moveDown(0.8);
+      doc.moveDown(1.2);
 
-      doc.fillColor("#000").fontSize(12);
-      doc.text(`Guide: ${payload.guideName}`);
-      doc.text(`Tour: ${payload.slotDate} @ ${payload.slotTime}`);
-      doc.moveDown(1);
+      // Guide block (matches example)
+      doc.font("Helvetica-Bold").fontSize(12).text(payload.guideName || "—");
+      doc.font("Helvetica").fontSize(10).text("Registered Green Badge Tourist Guide");
+      doc.moveDown(1.2);
 
-      doc.fontSize(12).text("Attendance");
-      doc.fontSize(11).text(`Total persons: ${payload.personsTotal}`);
-      doc.text(`VIC persons: ${payload.vicPersons}`);
-      doc.text(`Online persons: ${payload.onlinePersons}`);
-      doc.moveDown(1);
+      // TO:
+      doc.font("Helvetica-Bold").fontSize(10).text(`TO: ${payload.clientName || "Marketing Cheshire"}`);
+      doc.moveDown(1.6);
 
-      doc.fontSize(12).text("Payment");
-      const fmt = (p) => (p == null ? "—" : `${(p / 100).toFixed(2)} ${payload.currency}`);
-      doc.fontSize(11).text(`Total: ${fmt(payload.totalPence)}`);
-      doc.text(`Fees: ${fmt(payload.feesPence)}`);
-      doc.text(`Net: ${fmt(payload.netPence)}`);
+      // --- Table header: Date | Booking Reference | Fee ---
+      const x0 = doc.page.margins.left;
+      const pageW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const col1 = x0;
+      const col2 = x0 + pageW * 0.33;
+      const col3 = x0 + pageW * 0.78;
 
-      doc.moveDown(2);
-      doc.fontSize(9).fillColor("#666").text("Generated automatically by Guiding.", { align: "left" });
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("Date", col1);
+      doc.text("Booking Reference", col2);
+      doc.text("Fee", col3, undefined, { align: "right", width: pageW * 0.22 });
+
+      doc.moveDown(0.8);
+      doc.font("Helvetica").fontSize(10);
+
+      // Row: Date + Booking Ref (fee blank like example)
+      doc.text(dateFmt(payload.invoiceDateISO), col1);
+      doc.text(payload.bookingRef || "", col2);
+      // keep fee column empty on this row to match example spacing
+      doc.text("", col3, undefined, { align: "right", width: pageW * 0.22 });
+
+      doc.moveDown(1.2);
+
+      // Line: Chester Tour - X visitors  £YYY
+      doc.text(`${payload.tourLabel || "Chester Tour"} - ${payload.personsTotal} visitors`, col2);
+      doc.text(money(payload.grossPence), col3, undefined, { align: "right", width: pageW * 0.22 });
+
+      // Line: VIC Commission  -£ZZZ
+      doc.moveDown(0.4);
+      doc.text("VIC Commission", col2);
+      doc.text(`-${money(payload.vicCommissionPence)}`, col3, undefined, { align: "right", width: pageW * 0.22 });
+
+      doc.moveDown(1.0);
+
+      // TOTAL PAYABLE £...
+      doc.font("Helvetica-Bold").fontSize(12);
+      doc.text("TOTAL PAYABLE", col2);
+      doc.text(money(payload.totalPayablePence), col3, undefined, { align: "right", width: pageW * 0.22 });
+
+      doc.moveDown(1.6);
+
+      // BACS line
+      doc.font("Helvetica").fontSize(10);
+      const payee = payload.bankPayeeName || payload.guideName || "—";
+      const sort = payload.bankSortCode || "—";
+      const acct = payload.bankAccountNumber || "—";
+      const email = payload.bankEmail || "";
+
+      const bacs = `BACS Payment: ${payee}  Sort code: ${sort}  Account: ${acct}${email ? `\n${email}` : ""}`;
+      doc.text(bacs, { align: "left" });
 
       doc.end();
     } catch (e) {
