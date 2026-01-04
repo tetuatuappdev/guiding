@@ -8,10 +8,7 @@ const { createClient } = require("@supabase/supabase-js");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const makeToursRoutes = require("./routes/admin.js");
-app.use("/api/tours", makeToursRoutes());
-
-
+// Middleware first
 app.use(cors());
 app.use(bodyParser.json());
 app.use("/public", express.static("public"));
@@ -64,8 +61,9 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+// Admin-only routes (payments / invoices, etc.)
 const makeAdminRoutes = require("./routes/admin");
-app.use("/api/admin", makeAdminRoutes(supabaseService, requireAdmin));
+app.use("/api/admin/tours", makeAdminRoutes(supabaseService, requireAdmin));
 
 
 // Keep Render awake (UptimeRobot can ping with HEAD)
@@ -81,9 +79,7 @@ app.get("/keepitwarm", (_req, res) => {
 // --- AUTH: Invite-only signup (whitelist) ---
 app.post("/api/auth/invite", async (req, res) => {
   try {
-    if (!supabaseAdmin) {
-      return res.status(500).json({ error: "Supabase admin not configured" });
-    }
+    // Uses service role key (supabaseService)
 
     const email = String(req.body?.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
@@ -91,7 +87,7 @@ app.post("/api/auth/invite", async (req, res) => {
     }
 
     // 1) check whitelist
-    const { data: allowed, error: werr } = await supabaseAdmin
+    const { data: allowed, error: werr } = await supabaseService
       .from("admin_whitelist")
       .select("email")
       .eq("email", email)
@@ -108,7 +104,7 @@ app.post("/api/auth/invite", async (req, res) => {
     // change this to your real page
     const redirectTo = "https://guiding.onrender.com/set-password";
 
-    const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(
       email,
       { redirectTo }
     );

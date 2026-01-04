@@ -1,4 +1,4 @@
-const { supabaseAuth, supabaseService } = require("../supabaseAdmin");
+const { supabaseAuth } = require("../supabaseAdmin");
 
 
 async function requireAuth(req, res, next) {
@@ -9,7 +9,7 @@ async function requireAuth(req, res, next) {
 
     if (!token) return res.status(401).json({ error: "Missing Bearer token" });
 
-    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    const { data, error } = await supabaseAuth.auth.getUser(token);
     if (error || !data || !data.user) {
       return res.status(401).json({ error: "Invalid token" });
     }

@@ -16,4 +16,7 @@ const supabaseService = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-module.exports = { supabaseAuth, supabaseService };
+// Backwards-compatible alias (some routes still import supabaseAdmin)
+const supabaseAdmin = supabaseService;
+
+module.exports = { supabaseAuth, supabaseService, supabaseAdmin };
