@@ -8,7 +8,9 @@ console.log("openInvoice exists?", typeof openInvoice);
 module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
   const router = express.Router();
 
-  router.get("/tours/:slotId/invoice-url", requireAdmin, async (req, res) => {
+  router.get("/ping", (req, res) => res.send("pong"));
+
+  router.get("/:slotId/invoice-url", requireAdmin, async (req, res) => {
   try {
     const slotId = req.params.slotId;
 
@@ -33,7 +35,7 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
 });
 
 
-  router.post("/tours/:slotId/mark-paid", requireAdmin, async (req, res) => {
+  router.post("/:slotId/mark-paid", requireAdmin, async (req, res) => {
     console.log("mark-paid: start", req.params.slotId);
 
     try {
