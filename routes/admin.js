@@ -1,4 +1,6 @@
 const PDFDocument = require("pdfkit");
+const { renderInvoicePdfBuffer } = require("invoiceRenderer");
+
 
 module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
   const router = require("express").Router();
@@ -108,7 +110,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
 
 
       // 5) build PDF buffer
-      const pdfBuffer = await buildInvoicePdfBuffer({
+      const pdfBuffer = await renderInvoicePdfBuffer({
   invoiceNo: `INV-${slotId.slice(0, 8)}`,
   guideName: guide.name,
   clientName: "Marketing Cheshire",
@@ -198,98 +200,3 @@ const totalPayablePence = grossPence - vicCommissionPence;
   return router;
 };
 
-function buildInvoicePdfBuffer(payload) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ size: "A4", margin: 60 });
-
-      const chunks = [];
-      doc.on("data", (c) => chunks.push(c));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-
-      const money = (pence) => `£${(Number(pence || 0) / 100).toFixed(0)}`; // example shows no decimals
-      const dateFmt = (iso) => {
-        // expects YYYY-MM-DD
-        const d = new Date(iso + "T00:00:00Z");
-        const day = d.getUTCDate();
-        const suffix =
-          day % 10 === 1 && day !== 11 ? "st" :
-          day % 10 === 2 && day !== 12 ? "nd" :
-          day % 10 === 3 && day !== 13 ? "rd" : "th";
-        const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        return `${day}${suffix} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-      };
-
-      // --- Header ---
-      doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", { align: "left" });
-      doc.font("Helvetica").fontSize(10).fillColor("#000");
-doc.text(`Invoice reference: ${payload.invoiceNo}`);
-doc.moveDown(0.8);
-      doc.moveDown(1.2);
-
-      // Guide block (matches example)
-      doc.font("Helvetica-Bold").fontSize(12).text(payload.guideName || "—");
-      doc.font("Helvetica").fontSize(10).text("Registered Green Badge Tourist Guide");
-      doc.moveDown(1.2);
-
-      // TO:
-      doc.font("Helvetica-Bold").fontSize(10).text(`TO: ${payload.clientName || "Marketing Cheshire"}`);
-      doc.moveDown(1.6);
-
-      // --- Table header: Date | Booking Reference | Fee ---
-      const x0 = doc.page.margins.left;
-      const pageW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-      const col1 = x0;
-      const col2 = x0 + pageW * 0.33;
-      const col3 = x0 + pageW * 0.78;
-
-      doc.font("Helvetica-Bold").fontSize(10);
-      doc.text("Date", col1);
-      doc.text("Booking Reference", col2);
-      doc.text("Fee", col3, undefined, { align: "right", width: pageW * 0.22 });
-
-      doc.moveDown(0.8);
-      doc.font("Helvetica").fontSize(10);
-
-      // Row: Date + Booking Ref (fee blank like example)
-      doc.text(dateFmt(payload.invoiceDateISO), col1);
-      doc.text(payload.bookingRef || "", col2);
-      // keep fee column empty on this row to match example spacing
-      doc.text("", col3, undefined, { align: "right", width: pageW * 0.22 });
-
-      doc.moveDown(1.2);
-
-      // Line: Chester Tour - X visitors  £YYY
-      doc.text(`${payload.tourLabel || "Chester Tour"} - ${payload.personsTotal} visitors`, col2);
-      doc.text(money(payload.grossPence), col3, undefined, { align: "right", width: pageW * 0.22 });
-
-      // Line: VIC Commission  -£ZZZ
-      doc.moveDown(0.4);
-      doc.text("VIC Commission", col2);
-      doc.text(`-${money(payload.vicCommissionPence)}`, col3, undefined, { align: "right", width: pageW * 0.22 });
-
-      doc.moveDown(1.0);
-
-      // TOTAL PAYABLE £...
-      doc.font("Helvetica-Bold").fontSize(12);
-      doc.text("TOTAL PAYABLE", col2);
-      doc.text(money(payload.totalPayablePence), col3, undefined, { align: "right", width: pageW * 0.22 });
-
-      doc.moveDown(1.6);
-
-      // BACS line
-      doc.font("Helvetica").fontSize(10);
-      const payee = payload.bankPayeeName || payload.guideName || "—";
-      const sort = payload.bankSortCode || "—";
-      const acct = payload.bankAccountNumber || "—";
-      const email = payload.bankEmail || "";
-
-      const bacs = `BACS Payment: ${payee}  Sort code: ${sort}  Account: ${acct}${email ? `\n${email}` : ""}`;
-      doc.text(bacs, { align: "left" });
-
-      doc.end();
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
