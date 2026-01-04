@@ -8,8 +8,9 @@ const { createClient } = require("@supabase/supabase-js");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-import makeToursRoutes from "./routes/admin.js";
+const makeToursRoutes = require("./routes/admin.js");
 app.use("/api/tours", makeToursRoutes());
+
 
 app.use(cors());
 app.use(bodyParser.json());

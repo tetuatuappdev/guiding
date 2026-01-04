@@ -5,11 +5,11 @@ console.log("openInvoice exists?", typeof openInvoice);
 
 
 
-module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
-  const router = express.Router();
+module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
+  const router = require("express").Router();
 
   router.get("/ping", (req, res) => res.send("pong"));
-
+  
   router.get("/:slotId/invoice-url", requireAdmin, async (req, res) => {
   try {
     const slotId = req.params.slotId;
