@@ -35,6 +35,7 @@ async function renderInvoicePdfBuffer(payload) {
   const tpl = fs.readFileSync(tplPath, "utf8");
 
   const html = fillTemplate(tpl, {
+    invoiceNo: payload.invoiceNo || "",
     guideName: payload.guideName,
     clientName: payload.clientName || "Marketing Cheshire",
     bookingRef: payload.bookingRef || "",
@@ -49,6 +50,8 @@ async function renderInvoicePdfBuffer(payload) {
     bankAccountNumber: payload.bankAccountNumber || "—",
     bankEmail: payload.bankEmail || "",
   });
+
+  console.log("PW browsers path:", process.env.PLAYWRIGHT_BROWSERS_PATH);
 
   const browser = await chromium.launch({
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
