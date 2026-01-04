@@ -1,8 +1,38 @@
 const express = require("express");
 const PDFDocument = require("pdfkit");
+import { openInvoice } from "./openInvoice";
+
+console.log("openInvoice exists?", typeof openInvoice);
+
+
 
 module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
   const router = express.Router();
+
+  router.get("/tours/:slotId/invoice-url", requireAdmin, async (req, res) => {
+  try {
+    const slotId = req.params.slotId;
+
+    const { data: inv, error: iErr } = await supabaseAdmin
+      .from("tour_invoices")
+      .select("pdf_path")
+      .eq("slot_id", slotId)
+      .single();
+
+    if (iErr) return res.status(404).json({ error: "Invoice not found" });
+
+    const { data, error } = await supabaseAdmin.storage
+      .from("invoices")
+      .createSignedUrl(inv.pdf_path, 120);
+
+    if (error) return res.status(500).json({ error: "Failed to sign URL", details: error.message });
+
+    return res.json({ url: data.signedUrl });
+  } catch (e) {
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 
   router.post("/tours/:slotId/mark-paid", requireAdmin, async (req, res) => {
     console.log("mark-paid: start", req.params.slotId);
