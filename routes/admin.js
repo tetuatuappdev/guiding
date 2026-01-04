@@ -3,38 +3,7 @@ const PDFDocument = require("pdfkit");
 
 console.log("openInvoice exists?", typeof openInvoice);
 
-router.get("/tours/:slotId/invoice-url", requireAdmin, async (req, res) => {
-  try {
-    if (!supabaseAdmin) return res.status(500).json({ error: "Supabase admin not configured" });
 
-    const { slotId } = req.params;
-
-    const { data: inv, error: invErr } = await supabaseAdmin
-      .from("tour_invoices")
-      .select("pdf_path")
-      .eq("slot_id", slotId)
-      .single();
-
-    if (invErr || !inv?.pdf_path) {
-      return res.status(404).json({ error: "Invoice not found" });
-    }
-
-    // tolérance au legacy "invoices/..." (si tu en as déjà)
-    let path = inv.pdf_path;
-    while (path.startsWith("invoices/")) path = path.slice("invoices/".length);
-
-    const { data, error } = await supabaseAdmin.storage
-      .from("invoices")
-      .createSignedUrl(path, 60);
-
-    if (error) return res.status(404).json({ error: error.message, path });
-
-    return res.json({ url: data.signedUrl });
-  } catch (e) {
-    console.error("invoice-url failed", e);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
 
 module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
   const router = express.Router();
