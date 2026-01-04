@@ -189,11 +189,11 @@ app.post("/api/auth/signup", async (req, res) => {
   // allowlist check
   const { data: allowed, error: werr } = await supabaseService
     .from("invite_allowlist")
-    .select("id,email,role,used_at")
+    .select("id,email,role")
     .eq("email", email)
     .maybeSingle();
 
-  if (werr) return res.status(500).json({ error: "Allowlist query failed" });
+  if (werr) return res.status(500).json({ error: werr.message, details: werr });
   if (!allowed) return res.status(403).json({ error: "Not authorised" });
 
   // optional: one-time use
