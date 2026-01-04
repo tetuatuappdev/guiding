@@ -98,11 +98,17 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
 
       // 8) update payment status
       const { error: pErr } = await supabaseAdmin
-        .from("tour_payments")
-        .upsert(
-          { slot_id: slotId, status: "paid", amount_pence: totalPence, currency },
-          { onConflict: "slot_id" }
-        );
+  .from("tour_payments")
+  .upsert(
+    {
+      slot_id: slotId,
+      guide_id: slot.guide_id,   // <-- add this
+      status: "paid",
+      amount_pence: totalPence,
+      currency,
+    },
+    { onConflict: "slot_id" }
+  );
 
       if (pErr) {
   console.error("tour_payments upsert error:", pErr);
