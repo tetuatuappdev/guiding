@@ -120,7 +120,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
       if (iErr) return res.status(500).json({ error: "Failed to write tour_invoices" });
 
       // 8) update payment status
-      await supabaseAdmin
+      const { error: pErr } = await supabaseAdmin
   .from("tour_payments")
   .upsert(
     {
