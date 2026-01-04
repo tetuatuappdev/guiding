@@ -104,7 +104,11 @@ module.exports = function makeAdminRoutes(supabaseAdmin, requireAdmin) {
           { onConflict: "slot_id" }
         );
 
-      if (pErr) return res.status(500).json({ error: "Failed to update tour_payments" });
+      if (pErr) {
+  console.error("tour_payments upsert error:", pErr);
+  return res.status(500).json({ error: "Failed to update tour_payments", details: pErr.message });
+}
+
 
       return res.json({
         ok: true,
