@@ -17,6 +17,45 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY; // sb_publishable_...
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;           // sb_secret_...
 
+// en haut du fichier, après les createClient:
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const MAIL_FROM = process.env.MAIL_FROM || "Chester Tours <onboarding@resend.dev>";
+const PLAY_STORE_URL = process.env.PLAY_STORE_URL || "https://play.google.com/store/apps/details?id=com.chestertours.app";
+const APP_STORE_URL = process.env.APP_STORE_URL || ""; // optionnel
+
+async function sendDownloadEmail(to) {
+  if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+
+  const html = `
+    <h2>Chester Walking Tours</h2>
+    <p>Your email has been authorised. Next step: install the app.</p>
+    <p><a href="${PLAY_STORE_URL}">Download on Google Play</a></p>
+    ${APP_STORE_URL ? `<p><a href="${APP_STORE_URL}">Download on the App Store</a></p>` : ""}
+    <p>Then sign up with <b>${to}</b>.</p>
+  `;
+
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: MAIL_FROM,
+      to: [to],
+      subject: "Install the app to create your account",
+      html,
+    }),
+  });
+
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    throw new Error(`Resend failed: ${r.status} ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY || !SUPABASE_SECRET_KEY) {
   console.warn("Missing Supabase env vars");
 }
@@ -82,49 +121,32 @@ app.post("/api/auth/invite", async (req, res) => {
   console.log("[INVITE] hit", { email });
 
   if (!email || !email.includes("@")) {
-    console.log("[INVITE] invalid email");
     return res.status(400).json({ error: "Invalid email" });
   }
 
   const { data: allowed, error: werr } = await supabaseService
     .from("invite_allowlist")
     .select("id,email,role")
-    .eq("email", email)          // évite les surprises, pas ilike
+    .eq("email", email)
     .maybeSingle();
 
-  if (werr) {
-    console.log("[INVITE] allowlist query failed", werr);
-    return res.status(500).json({ error: "Allowlist query failed" });
+  if (werr) return res.status(500).json({ error: "Allowlist query failed" });
+  if (!allowed) return res.status(403).json({ error: "Forbidden" });
+
+  try {
+    const out = await sendDownloadEmail(email);
+
+    await supabaseService
+      .from("invite_allowlist")
+      .update({ invited_at: new Date().toISOString() })
+      .eq("id", allowed.id);
+
+    console.log("[INVITE] download email sent", out?.id);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.log("[INVITE] email send failed", e);
+    return res.status(500).json({ error: String(e.message || e) });
   }
-  if (!allowed) {
-    console.log("[INVITE] forbidden (not allowlisted)");
-    return res.status(403).json({ error: "Forbidden" });
-  }
-
-  const redirectTo = "https://guiding.onrender.com/set-password";
-
-  const { data, error } = await supabaseService.auth.admin.inviteUserByEmail(
-    email,
-    { redirectTo }
-  );
-
-  if (error) {
-    console.log("[INVITE] inviteUserByEmail failed", error);
-    return res.status(500).json({ error: error.message });
-  }
-
-  const { error: uerr } = await supabaseService
-    .from("invite_allowlist")    // <-- corrigé
-    .update({ invited_at: new Date().toISOString() })
-    .eq("id", allowed.id);
-
-  if (uerr) {
-    console.log("[INVITE] allowlist update failed", uerr);
-    return res.status(500).json({ error: "Invited but failed to update allowlist" });
-  }
-
-  console.log("[INVITE] ok", { userId: data?.user?.id });
-  return res.json({ ok: true, userId: data?.user?.id ?? null });
 });
 
 // Routes
