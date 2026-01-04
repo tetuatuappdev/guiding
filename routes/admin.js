@@ -1,5 +1,5 @@
 const PDFDocument = require("pdfkit");
-const { renderInvoicePdfBuffer } = require("invoiceRenderer");
+const { renderInvoicePdfBuffer } = require("./invoiceRenderer");
 
 
 module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
