@@ -1,6 +1,5 @@
 const express = require("express");
 const PDFDocument = require("pdfkit");
-import { openInvoice } from "./openInvoice";
 
 console.log("openInvoice exists?", typeof openInvoice);
 
