@@ -36,7 +36,8 @@ async function renderInvoicePdfBuffer(payload) {
 
   const html = fillTemplate(tpl, {
     invoiceNo: payload.invoiceNo || "",
-    guideName: payload.guideName,
+    guideFirstName: payload.guideFirstName,
+    guideLastName: payload.guideLastName,
     clientName: payload.clientName || "Marketing Cheshire",
     bookingRef: payload.bookingRef || "",
     tourLabel: payload.tourLabel || "Chester Tour",

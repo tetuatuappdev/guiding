@@ -123,8 +123,8 @@ const totalPayablePence = grossPence - vicCommissionPence;
   vicCommissionPence,
   totalPayablePence,
   bankPayeeName: guide.bank_payee_name,
-  bankSortCode: guide.bank_sort_code,
-  bankAccountNumber: guide.bank_account_number,
+  bankSortCode: guide.sort_code,
+  bankAccountNumber: guide.account_number,
   bankEmail: guide.bank_email,
 });
 
