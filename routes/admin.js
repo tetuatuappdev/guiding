@@ -65,7 +65,7 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
       // 2) guide name
       const { data: guide, error: gErr } = await supabaseAdmin
   .from("guides")
-  .select("id, name, bank_sort_code, bank_account_number, bank_payee_name, bank_email")
+  .select("id, first_name, last_name, sort_code, account_number, bank_payee_name, bank_email")
   .eq("id", slot.guide_id)
   .single();
 
@@ -112,7 +112,8 @@ const totalPayablePence = grossPence - vicCommissionPence;
       // 5) build PDF buffer
       const pdfBuffer = await renderInvoicePdfBuffer({
   invoiceNo: `INV-${slotId.slice(0, 8)}`,
-  guideName: guide.name,
+  guideFirstName: guide.first_name,
+  guideLastName: guide.last_name,
   clientName: "Marketing Cheshire",
   invoiceDateISO: slot.slot_date,
   bookingRef: "",
