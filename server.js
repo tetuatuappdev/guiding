@@ -8,6 +8,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const { requireAuth } = require("./middleware/requireAuth");
 
+import { pushRouter } from "./routes/push";
+
+app.use("/api/push", pushRouter);
+
 app.use(cors());
 app.use(express.json());
 app.use("/public", express.static("public"));

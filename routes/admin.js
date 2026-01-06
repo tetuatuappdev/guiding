@@ -1,5 +1,6 @@
 const PDFDocument = require("pdfkit");
 const { renderInvoicePdfBuffer } = require("./invoiceRenderer");
+import { notifyTourPaid } from "../services/notifications";
 
 
 module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
@@ -143,6 +144,13 @@ const totalPayablePence = grossPence - vicCommissionPence;
   console.error("tour_payments upsert error:", pErr);
   return res.status(500).json({ error: "Failed to update tour_payments", details: pErr.message });
 }
+
+await notifyTourPaid({
+  guideUserId: guideId,   // celui du slot
+  slotId,
+  amount,
+  currency: "€",
+});
 
 
       return res.json({
