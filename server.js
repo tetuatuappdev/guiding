@@ -55,6 +55,22 @@ function isValidEmail(email) {
   return !!email && email.includes("@") && email.length <= 254;
 }
 
+async function requireUser(req, res, next) {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    if (!token) return res.status(401).json({ error: "Missing bearer token" });
+
+    const { data, error } = await supabaseAuth.auth.getUser(token);
+    if (error || !data?.user) return res.status(401).json({ error: "Invalid token" });
+
+    req.user = data.user;
+    next();
+  } catch (e) {
+    return res.status(500).json({ error: "Server error" });
+  }
+}
+
 async function sendDownloadEmail(to) {
   if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY (mail sending disabled)");
 
@@ -235,7 +251,7 @@ const guidesRoutes = require("./routes/guides");
 const toursRoutes = require("./routes/tours");
 const ticketsRoutes = require("./routes/tickets");
 app.use("/api/guides", guidesRoutes);
-app.use("/api/tours", toursRoutes);
+app.use("/api/tours", toursRoutes(supabaseService, requireUser));
 app.use("/api/tickets", ticketsRoutes);
 
 // Health

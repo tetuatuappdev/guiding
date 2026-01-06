@@ -6,18 +6,6 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
   const router = require("express").Router();
 
   router.get("/ping", (req, res) => res.send("pong"));
-
-  async function requireUser(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) return res.status(401).json({ error: "Missing bearer token" });
-
-  const { data, error } = await supabaseAuth.auth.getUser(token);
-  if (error || !data?.user) return res.status(401).json({ error: "Invalid token" });
-
-  req.user = data.user;
-  next();
-}
   
   router.get("/:slotId/invoice-url", requireAdmin, async (req, res) => {
   try {

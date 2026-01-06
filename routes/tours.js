@@ -1,4 +1,6 @@
-const express = require("express");
+module.exports = (supabaseAdmin, requireUser) => {
+  
+  const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/requireAuth");
 const { supabaseAdmin } = require("../supabaseAdmin");
@@ -130,3 +132,6 @@ router.get("/:id/tickets", requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+
+return router;
+};
