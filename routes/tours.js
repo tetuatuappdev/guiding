@@ -34,7 +34,18 @@ module.exports = (supabaseAdmin, requireUser, requireAuth) => {
         .single();
 
       if (sErr || !slot) return res.status(404).json({ error: "Slot not found" });
-      if (slot.guide_id !== uid) return res.status(403).json({ error: "Forbidden" });
+      //if (slot.guide_id !== uid) return res.status(403).json({ error: "Forbidden" });
+      // after uid
+const { data: guide, error: gErr } = await supabaseAdmin
+  .from("guides")
+  .select("id")
+  .eq("user_id", uid)
+  .maybeSingle();
+
+if (gErr) return res.status(500).json({ error: "Guide lookup failed" });
+if (!guide) return res.status(403).json({ error: "Forbidden" });
+
+if (slot.guide_id !== guide.id) return res.status(403).json({ error: "Forbidden" });
 
       const { data: inv, error: iErr } = await supabaseAdmin
         .from("tour_invoices")
