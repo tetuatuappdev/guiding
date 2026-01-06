@@ -1,6 +1,6 @@
 const PDFDocument = require("pdfkit");
 const { renderInvoicePdfBuffer } = require("./invoiceRenderer");
-import { notifyTourPaid } from "../services/notifications";
+const { notifyTourPaid } = require("../services/notifications");
 
 
 module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
