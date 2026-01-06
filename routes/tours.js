@@ -1,3 +1,6 @@
+console.log("tours middlewares", typeof requireUser, typeof requireAuth);
+
+
 const express = require("express");
 
 module.exports = (supabaseAdmin, requireUser, requireAuth) => {

@@ -6,19 +6,8 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-/**
- * ENV required:
- * - SUPABASE_URL
- * - SUPABASE_PUBLISHABLE_KEY (sb_publishable_...)
- * - SUPABASE_SECRET_KEY (service_role / sb_secret_...)
- *
- * Optional mail:
- * - RESEND_API_KEY
- * - MAIL_FROM (ex: "Chester Tours <onboarding@resend.dev>" for test)
- * - PLAY_STORE_URL
- * - APP_STORE_URL
- */
+const { requireAuth } = require("./middleware/requireAuth");
+const requireUser = requireAuth;
 
 app.use(cors());
 app.use(express.json());
@@ -251,7 +240,7 @@ const guidesRoutes = require("./routes/guides");
 const toursRoutes = require("./routes/tours");
 const ticketsRoutes = require("./routes/tickets");
 app.use("/api/guides", guidesRoutes);
-app.use("/api/tours", toursRoutes(supabaseService, requireUser));
+app.use("/api/tours", toursRoutes(supabaseService, requireUser, requireAuth));
 app.use("/api/tickets", ticketsRoutes);
 
 // Health
