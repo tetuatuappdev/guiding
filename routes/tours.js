@@ -18,6 +18,46 @@ router.get("/guide/me", requireAuth, async (req, res) => {
   res.json(data);
 });
 
+router.get("/:slotId/invoice-url", requireUser, async (req, res) => {
+  try {
+    const slotId = req.params.slotId;
+    const uid = req.user.id;
+
+    // 1) vérifier que ce slot appartient à ce guide
+    const { data: slot, error: sErr } = await supabaseService
+      .from("schedule_slots")
+      .select("id, guide_id")
+      .eq("id", slotId)
+      .single();
+
+    if (sErr || !slot) return res.status(404).json({ error: "Slot not found" });
+    if (slot.guide_id !== uid) return res.status(403).json({ error: "Forbidden" });
+
+    // 2) récupérer le pdf_path
+    const { data: inv, error: iErr } = await supabaseService
+      .from("tour_invoices")
+      .select("pdf_path")
+      .eq("slot_id", slotId)
+      .single();
+
+    if (iErr || !inv) return res.status(404).json({ error: "Invoice not found" });
+
+    // 3) normaliser path comme tu fais déjà
+    let path = String(inv.pdf_path || "");
+    while (path.startsWith("invoices/")) path = path.slice("invoices/".length);
+
+    // 4) URL (si bucket public -> publicUrl ; si privé -> signed)
+    // Option bucket public:
+    const { data } = supabaseService.storage.from("invoices").getPublicUrl(path);
+    return res.json({ url: data.publicUrl, path });
+
+    // Option bucket privé (meilleur): createSignedUrl(path, 120)
+  } catch (e) {
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 // GET /api/tours/guide/:id  (kept for compatibility)
 router.get("/guide/:id", requireAuth, async (req, res) => {
   const guide_id = req.params.id;
