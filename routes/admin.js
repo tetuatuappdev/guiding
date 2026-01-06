@@ -7,41 +7,6 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
 
   router.get("/ping", (req, res) => res.send("pong"));
   
-  router.get("/:slotId/invoice-url", requireAdmin, async (req, res) => {
-  try {
-    const slotId = req.params.slotId;
-
-    const { data: inv, error: iErr } = await supabaseAdmin
-      .from("tour_invoices")
-      .select("pdf_path")
-      .eq("slot_id", slotId)
-      .single();
-
-    if (iErr) return res.status(404).json({ error: "Invoice not found" });
-
-    // Normalise legacy paths (avoid invoices/invoices/... mess)
-    let path = String(inv.pdf_path || "");
-    while (path.startsWith("invoices/")) path = path.slice("invoices/".length);
-
-    // Try current path, then fallback to known legacy layout if needed
-    const trySign = async (p) =>
-      supabaseAdmin.storage.from("invoices").createSignedUrl(p, 120);
-
-    let { data, error } = await trySign(path);
-    if (error) {
-      const legacy = `${slotId}/invoices/invoice-${slotId}.pdf`;
-      ({ data, error } = await trySign(legacy));
-      if (error) {
-        return res.status(404).json({ error: error.message, path, legacy });
-      }
-    }
-
-    return res.json({ url: data.signedUrl, path });
-  } catch (e) {
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
 
   router.post("/:slotId/mark-paid", requireAdmin, async (req, res) => {
     console.log("mark-paid: start", req.params.slotId);
