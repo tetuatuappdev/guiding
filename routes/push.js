@@ -1,6 +1,8 @@
 const express = require("express");
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 const { requireAuth } = require("../middleware/requireAuth");
+const { Expo } = require("expo-server-sdk");
+const expo = new Expo();
 
 const pushRouter = express.Router();
 
@@ -29,3 +31,38 @@ pushRouter.post("/register", requireAuth, async (req, res) => {
 });
 
 module.exports = { pushRouter };
+
+pushRouter.post("/test", requireAuth, async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: "unauthorized" });
+
+  const { data, error } = await supabaseAdmin
+    .from("push_tokens")
+    .select("expo_push_token")
+    .eq("user_id", userId)
+    .order("last_seen", { ascending: false })
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const token = data?.[0]?.expo_push_token;
+  if (!token) return res.status(404).json({ error: "no token" });
+  if (!Expo.isExpoPushToken(token)) {
+    return res.status(400).json({ error: "invalid token" });
+  }
+
+  const messages = [{
+    to: token,
+    sound: "default",
+    title: "Test push",
+    body: "Si tu vois ça, c’est gagné.",
+  }];
+
+  try {
+    const tickets = await expo.sendPushNotificationsAsync(messages);
+    return res.json({ ok: true, tickets });
+  } catch (e) {
+    return res.status(500).json({ error: String(e) });
+  }
+});
+
