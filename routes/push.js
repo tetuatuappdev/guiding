@@ -21,6 +21,9 @@ pushRouter.post("/register", requireAuth, async (req, res) => {
     { onConflict: "expo_push_token" }
   );
 
+  console.log("push/register raw body =", req.body);
+
+
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true });
 });
