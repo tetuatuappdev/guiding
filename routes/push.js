@@ -2,12 +2,12 @@ const express = require("express");
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 const { requireAuth } = require("../middleware/requireAuth");
 const { Expo } = require("expo-server-sdk");
-const expo = new Expo();
 
+const expo = new Expo();
 const pushRouter = express.Router();
 
 pushRouter.post("/register", requireAuth, async (req, res) => {
-  const userId = req.user && req.user.id;
+  const userId = req.user?.id;
   const { expoPushToken, platform } = req.body || {};
 
   if (!userId) return res.status(401).json({ error: "unauthorized" });
@@ -23,14 +23,11 @@ pushRouter.post("/register", requireAuth, async (req, res) => {
     { onConflict: "expo_push_token" }
   );
 
-  console.log("push/register raw body =", req.body);
-
+  console.log("[PUSH] /register body =", req.body);
 
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true });
 });
-
-module.exports = { pushRouter };
 
 pushRouter.post("/test", requireAuth, async (req, res) => {
   const userId = req.user?.id;
@@ -47,9 +44,7 @@ pushRouter.post("/test", requireAuth, async (req, res) => {
 
   const token = data?.[0]?.expo_push_token;
   if (!token) return res.status(404).json({ error: "no token" });
-  if (!Expo.isExpoPushToken(token)) {
-    return res.status(400).json({ error: "invalid token" });
-  }
+  if (!Expo.isExpoPushToken(token)) return res.status(400).json({ error: "invalid token" });
 
   const messages = [{
     to: token,
@@ -60,9 +55,12 @@ pushRouter.post("/test", requireAuth, async (req, res) => {
 
   try {
     const tickets = await expo.sendPushNotificationsAsync(messages);
+    console.log("[PUSH] tickets =", tickets);
     return res.json({ ok: true, tickets });
   } catch (e) {
-    return res.status(500).json({ error: String(e) });
+    console.error("[PUSH] error", e);
+    return res.status(500).json({ error: String(e?.message || e) });
   }
 });
 
+module.exports = { pushRouter };
