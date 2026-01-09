@@ -123,13 +123,22 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+pushRouter.post("/test-admin", requireAdmin, async (req, res) => {
+  // envoie à l’admin connecté, ou à tous les tokens, etc.
+});
+
 // Admin-only routes (payments / invoices, etc.)
 const makeAdminRoutes = require("./routes/admin");
 app.use("/api/admin/tours", makeAdminRoutes(supabaseService, requireAdmin));
 
 // Keep Render awake
-app.head("/keepitwarm", (_req, res) => res.status(200).end());
+//app.head("/keepitwarm", (_req, res) => res.status(200).end());
 app.get("/keepitwarm", (_req, res) => res.status(200).send("ok"));
+
+app.head("/keepitwarm", (req, res) => {
+  console.log("[HEAD keepitwarm]", new Date().toISOString());
+  res.status(200).end();
+});
 
 /**
  * AUTH (allowlist-driven)
