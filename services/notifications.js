@@ -28,6 +28,11 @@ async function notifyTourPaid({ guideUserId, slotId, amount, currency }) {
   const amountText =
     typeof amount === "number" ? ` (${amount}${currency || "€"})` : "";
 
+    console.log("notifyTourPaid", {
+  guideUserId,
+  tokensCount: tokens.length,
+});
+
   return sendExpoPush(tokens, {
     title: "Tour payé ✅",
     body: `Ton tour a été marqué comme payé${amountText}.`,

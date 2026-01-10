@@ -30,11 +30,12 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
       if (!slot.guide_id) return res.status(400).json({ error: "Slot has no guide" });
 
       // 2) guide name
-      const { data: guide, error: gErr } = await supabaseAdmin
+const { data: guide } = await supabaseAdmin
   .from("guides")
-  .select("id, first_name, last_name, sort_code, account_number, bank_payee_name, bank_email")
+  .select("id, user_id, first_name, last_name")
   .eq("id", slot.guide_id)
   .single();
+
 
 if (gErr) return res.status(500).json({ error: "Failed to load guide" });
 
@@ -146,7 +147,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
 }
 
 await notifyTourPaid({
-  guideUserId: slot.guide_id,
+  guideUserId: slot.guide_user_id,
   slotId,
   amount_pence: totalPayablePence,
   currency: "GBP",
