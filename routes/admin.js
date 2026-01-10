@@ -69,8 +69,8 @@ const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person
       // 4) decide amounts
       // amount_pence could be passed from UI, or computed. Keep it explicit for now.
       //const totalPence = amount_pence;
-      const feesPence = Number(fees_pence || 0);
-      const netPence = totalPence != null ? Math.max(0, Number(totalPence) - feesPence) : null;
+      //const feesPence = Number(fees_pence || 0);
+      //const netPence = totalPence != null ? Math.max(0, Number(totalPence) - feesPence) : null;
       const grossPence = personsTotal * PRICE_PER_PERSON_PENCE;
 const vicCommissionPence = vicPersons * VIC_COMMISSION_PER_PERSON_PENCE;
 const totalPayablePence = grossPence - vicCommissionPence;
@@ -117,7 +117,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
             slot_id: slotId,
             guide_id: slot.guide_id,
             pdf_path: path,
-            currency,
+            currency: "GBP",
             persons: personsTotal,
           },
           { onConflict: "slot_id" }
