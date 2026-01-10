@@ -145,10 +145,15 @@ const totalPayablePence = grossPence - vicCommissionPence;
   return res.status(500).json({ error: "Failed to update tour_payments", details: pErr.message });
 }
 
+if (!guide.user_id) {
+  return res.status(400).json({ error: "Guide has no user_id linked (auth)" });
+}
+
+
 await notifyTourPaid({
-  guideUserId: slot.guide.user_id,
+  guideUserId: guide.user_id,
   slotId,
-  amount_pence: totalPayablePence/100,
+  amount: totalPayablePence/100,
   currency: "GBP",
   slot_date: slot.slot_date,
   slot_time: slot.slot_time,
