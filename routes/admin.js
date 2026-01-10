@@ -7,7 +7,8 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
   const router = require("express").Router();
 
   router.get("/ping", (req, res) => res.send("pong"));
-  
+
+
 
   router.post("/:slotId/mark-paid", requireAdmin, async (req, res) => {
     console.log("mark-paid: start", req.params.slotId);
@@ -16,7 +17,7 @@ module.exports = function makeToursRoutes(supabaseAdmin, requireAdmin) {
       if (!supabaseAdmin) return res.status(500).json({ error: "Supabase admin not configured" });
 
       const slotId = req.params.slotId;
-      const { currency = "GBP", amount_pence = null, fees_pence = 0 } = req.body || {};
+      //const { currency = "GBP", amount_pence = null, fees_pence = 0 } = req.body || {};
 
       // 1) slot info
       const { data: slot, error: sErr } = await supabaseAdmin
@@ -67,7 +68,7 @@ const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person
 
       // 4) decide amounts
       // amount_pence could be passed from UI, or computed. Keep it explicit for now.
-      const totalPence = amount_pence;
+      //const totalPence = amount_pence;
       const feesPence = Number(fees_pence || 0);
       const netPence = totalPence != null ? Math.max(0, Number(totalPence) - feesPence) : null;
       const grossPence = personsTotal * PRICE_PER_PERSON_PENCE;
@@ -116,7 +117,6 @@ const totalPayablePence = grossPence - vicCommissionPence;
             slot_id: slotId,
             guide_id: slot.guide_id,
             pdf_path: path,
-            amount_pence: totalPence,
             currency,
             persons: personsTotal,
           },
@@ -146,12 +146,13 @@ const totalPayablePence = grossPence - vicCommissionPence;
 }
 
 await notifyTourPaid({
-  guideUserId: guideId,   // celui du slot
+  guideUserId: slot.guide_id,
   slotId,
-  amount,
-  currency: "€",
+  amount_pence: totalPayablePence,
+  currency: "GBP",
+  slot_date: slot.slot_date,
+  slot_time: slot.slot_time,
 });
-
 
       return res.json({
         ok: true,
