@@ -90,7 +90,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
   grossPence,
   vicCommissionPence,
   totalPayablePence,
-  pricePerPerson:cfg.price_per_person_gbp,
+  pricePerPerson:PRICE_PER_PERSON_PENCE,
   CommisionPct: VIC_COMMISSION_PER_PERSON_PENCE_PCT,
   bankPayeeName: guide.bank_payee_name,
   bankSortCode: guide.sort_code,
