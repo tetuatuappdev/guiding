@@ -41,7 +41,7 @@ async function renderInvoicePdfBuffer(payload) {
     clientName: payload.clientName || "Marketing Cheshire",
     bookingRef: payload.bookingRef || "",
     tourLabel: payload.tourLabel || "Chester Tour",
-    personsTotal: String(payload.personsTotal ?? 0),
+    personsTotal: String(payload.vicPersons ?? 0),
     prettyDate: prettyDate(payload.invoiceDateISO),
     gross: moneyGBP(payload.grossPence),
     vicCommission: `-${moneyGBP(payload.vicCommissionPence)}`,

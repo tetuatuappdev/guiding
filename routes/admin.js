@@ -64,7 +64,7 @@ const cfg = Object.fromEntries(
 
 const PRICE_PER_PERSON_PENCE = Math.round(cfg.price_per_person_gbp * 100);
 const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person_gbp * 1);
-const VIC_COMMISSION_PER_PERSON_PENCE_PCT = Math.round(cfg.vic_commission_per_person_gbp * 10);
+const VIC_COMMISSION_PER_PERSON_PENCE_PCT = Math.round(cfg.vic_commission_per_person_gbp * 100);
 
 
       // 4) decide amounts
