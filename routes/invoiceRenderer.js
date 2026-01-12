@@ -46,7 +46,7 @@ async function renderInvoicePdfBuffer(payload) {
     gross: moneyGBP(payload.grossPence),
     vicCommission: `-${moneyGBP(payload.vicCommissionPence)}`,
     total: moneyGBP(payload.totalPayablePence),
-    pricePerPerson: moneyGBP(payload.price_per_person_gbp),
+    pricePerPerson: moneyGBP(payload.pricePerPerson),
     CommisionPct: payload.CommisionPct,
     bankPayeeName: payload.bankPayeeName || payload.guideName || "—",
     bankSortCode: payload.bankSortCode || "—",
