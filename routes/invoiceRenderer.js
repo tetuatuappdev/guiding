@@ -27,7 +27,7 @@ function prettyDate(iso) {
 function moneyGBP(pence) {
   const v = (Number(pence || 0) / 100);
   // ton exemple est sans décimales, garde ça
-  return `£${v.toFixed(0)}`;
+  return `£${v.toFixed(2)}`;
 }
 
 async function renderInvoicePdfBuffer(payload) {
