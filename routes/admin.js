@@ -63,7 +63,8 @@ const cfg = Object.fromEntries(
 );
 
 const PRICE_PER_PERSON_PENCE = Math.round(cfg.price_per_person_gbp * 100);
-const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person_gbp * 100);
+const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person_gbp * 1);
+const VIC_COMMISSION_PER_PERSON_PENCE_PCT = Math.round(cfg.vic_commission_per_person_gbp * 10);
 
 
       // 4) decide amounts
@@ -71,8 +72,8 @@ const VIC_COMMISSION_PER_PERSON_PENCE = Math.round(cfg.vic_commission_per_person
       //const totalPence = amount_pence;
       //const feesPence = Number(fees_pence || 0);
       //const netPence = totalPence != null ? Math.max(0, Number(totalPence) - feesPence) : null;
-      const grossPence = personsTotal * PRICE_PER_PERSON_PENCE;
-const vicCommissionPence = vicPersons * VIC_COMMISSION_PER_PERSON_PENCE;
+      const grossPence = vicPersons * PRICE_PER_PERSON_PENCE;
+const vicCommissionPence = grossPence * VIC_COMMISSION_PER_PERSON_PENCE;
 const totalPayablePence = grossPence - vicCommissionPence;
 
 
@@ -85,10 +86,12 @@ const totalPayablePence = grossPence - vicCommissionPence;
   invoiceDateISO: slot.slot_date,
   bookingRef: "",
   tourLabel: "Chester Tour",
-  personsTotal,
+  vicPersons,
   grossPence,
   vicCommissionPence,
   totalPayablePence,
+  pricePerPerson:cfg.price_per_person_gbp,
+  CommisionPct: VIC_COMMISSION_PER_PERSON_PENCE_PCT,
   bankPayeeName: guide.bank_payee_name,
   bankSortCode: guide.sort_code,
   bankAccountNumber: guide.account_number,
