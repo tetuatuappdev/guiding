@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const { requireAuth } = require("./middleware/requireAuth");
 
 const { pushRouter } = require("./routes/push");
+const { startTourCompletionWorker } = require("./services/tourCompletion");
 app.use(express.json())
 app.use("/api/push", pushRouter);
 
@@ -253,6 +254,9 @@ const toursRoutes = require("./routes/tours");
 const ticketsRoutes = require("./routes/tickets");
 app.use("/api/guides", guidesRoutes);
 app.use("/api/tours", toursRoutes(supabaseService, requireUser, requireAuth));
+
+// Auto-complete past tours + enqueue pending payments (paper/scanned tickets only).
+startTourCompletionWorker(supabaseService);
 app.use("/api/tickets", ticketsRoutes);
 
 // Health
