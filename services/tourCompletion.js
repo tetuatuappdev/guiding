@@ -50,7 +50,7 @@ async function syncCompletedToursAndPayments(supabaseAdmin) {
 
   const { data: scans, error: scanErr } = await supabaseAdmin
     .from("ticket_scans")
-    .select("slot_id, kind")
+    .select("slot_id, kind, persons")
     .in("slot_id", slotIds)
     .in("kind", ["paper", "scanned"]);
 
@@ -59,11 +59,40 @@ async function syncCompletedToursAndPayments(supabaseAdmin) {
     return;
   }
 
-  const slotsWithTickets = new Set(
-    (scans || []).map((r) => r.slot_id).filter(Boolean)
-  );
+  const vicPersonsBySlot = new Map();
+  (scans || []).forEach((r) => {
+    if (!r.slot_id) return;
+    const current = vicPersonsBySlot.get(r.slot_id) ?? 0;
+    vicPersonsBySlot.set(r.slot_id, current + (r.persons ?? 1));
+  });
+
+  const slotsWithTickets = new Set(vicPersonsBySlot.keys());
 
   if (slotsWithTickets.size === 0) return;
+
+  const { data: cfgRows, error: cfgErr } = await supabaseAdmin
+    .from("configuration")
+    .select("key, value_numeric");
+
+  if (cfgErr) {
+    console.error("tourCompletion: failed to load configuration", cfgErr);
+    return;
+  }
+
+  const cfg = Object.fromEntries(
+    (cfgRows || []).map((r) => [r.key, Number(r.value_numeric)])
+  );
+
+  const PRICE_PER_PERSON_PENCE = Math.round(cfg.price_per_person_gbp * 100);
+  const VIC_COMMISSION_PER_PERSON_PENCE = cfg.vic_commission_per_person_gbp;
+
+  if (
+    !Number.isFinite(PRICE_PER_PERSON_PENCE) ||
+    !Number.isFinite(VIC_COMMISSION_PER_PERSON_PENCE)
+  ) {
+    console.error("tourCompletion: invalid pricing configuration", cfg);
+    return;
+  }
 
   const { data: payments, error: payErr } = await supabaseAdmin
     .from("tour_payments")
@@ -81,12 +110,20 @@ async function syncCompletedToursAndPayments(supabaseAdmin) {
 
   const pendingRows = pastSlots
     .filter((s) => slotsWithTickets.has(s.id) && !existingPayments.has(s.id))
-    .map((s) => ({
-      slot_id: s.id,
-      guide_id: s.guide_id,
-      status: "pending",
-      currency: "GBP",
-    }));
+    .map((s) => {
+      const vicPersons = vicPersonsBySlot.get(s.id) ?? 0;
+      const grossPence = vicPersons * PRICE_PER_PERSON_PENCE;
+      const vicCommissionPence = grossPence * VIC_COMMISSION_PER_PERSON_PENCE;
+      const totalPayablePence = grossPence - vicCommissionPence;
+
+      return {
+        slot_id: s.id,
+        guide_id: s.guide_id,
+        status: "pending",
+        amount_pence: totalPayablePence,
+        currency: "GBP",
+      };
+    });
 
   if (pendingRows.length === 0) return;
 
