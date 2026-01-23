@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice {{invoiceNumber}}</title>
+  <style>
+    @page { size: A4; margin: 18mm; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+      color: #0b1220;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      min-height: calc(297mm - 36mm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e6e8ee;
+    }
+
+    .title {
+      font-size: 30px;
+      letter-spacing: 0.06em;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f3f5fb;
+      color: #22305a;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 12px;
+      color: #44506a;
+      line-height: 1.6;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 6px;
+    }
+
+    .card {
+      border: 1px solid #e6e8ee;
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      background: #fff;
+    }
+
+    .label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      font-size: 11px;
+      color: #66708a;
+      margin: 0 0 6px 0;
+    }
+
+    .who {
+      font-size: 14px;
+      line-height: 1.55;
+      color: #0b1220;
+    }
+    .who strong { font-size: 15px; }
+    .muted { color: #51607a; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid #e6e8ee;
+    }
+
+    thead th {
+      background: #f6f7fb;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #4a5772;
+      text-align: left;
+      padding: 12px 12px;
+      border-bottom: 1px solid #e6e8ee;
+    }
+
+    tbody td {
+      padding: 12px 12px;
+      border-bottom: 1px solid #eef0f5;
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .num { text-align: right; white-space: nowrap; }
+
+    .totals {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .note {
+      border: 1px dashed #d6d9e3;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 12.5px;
+      color: #33415e;
+      background: #fbfcff;
+      line-height: 1.55;
+    }
+
+    .sum {
+      border: 1px solid #e6e8ee;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+    .sumrow {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 13px;
+      color: #2a3652;
+    }
+    .sumrow strong { font-size: 14px; }
+    .sumrow.total {
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px solid #e6e8ee;
+      font-size: 14px;
+      font-weight: 800;
+      color: #0b1220;
+    }
+
+    .footer {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid #e6e8ee;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      font-size: 12px;
+      color: #47546f;
+      line-height: 1.55;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 7px 10px;
+      border-radius: 12px;
+      background: #0b1220;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .small { font-size: 11.5px; color: #55627c; }
+
+    /* Optional watermark for "PAID" */
+    .watermark {
+      position: fixed;
+      inset: 0;
+      display: {{showPaidWatermark}};
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0.08;
+      font-size: 120px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      transform: rotate(-18deg);
+      color: #0b1220;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="watermark">PAID</div>
+
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h1 class="title">INVOICE</h1>
+        <div class="badge">{{supplierRole}}</div>
+      </div>
+
+      <div class="meta">
+        <div><strong>Invoice #</strong> {{invoiceNumber}}</div>
+        <div><strong>Date</strong> {{invoiceDate}}</div>
+        <div><strong>Booking ref</strong> {{bookingReference}}</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <p class="label">From</p>
+        <div class="who">
+          <strong>{{supplierName}}</strong><br/>
+          <span class="muted">{{supplierSubtitle}}</span><br/>
+          <span class="muted">{{supplierEmail}}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">To</p>
+        <div class="who">
+          <strong>{{clientName}}</strong><br/>
+          <span class="muted">{{clientAddressLine1}}</span><br/>
+          <span class="muted">{{clientAddressLine2}}</span>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Date</th>
+          <th>Description</th>
+          <th style="width: 18%;" class="num">Fee</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{serviceDate}}</td>
+          <td>
+            <strong>{{serviceTitle}}</strong><br/>
+            <span class="muted">{{serviceDetails}}</span>
+          </td>
+          <td class="num">{{currencySymbol}}{{fee}}</td>
+        </tr>
+
+        <tr>
+          <td></td>
+          <td><span class="muted">{{adjustmentLabel}}</span></td>
+          <td class="num">-{{currencySymbol}}{{adjustmentAmount}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div class="note">
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:6px;">
+          <span class="pill">Payment</span>
+          <span class="small">Please include invoice number as reference.</span>
+        </div>
+        <strong>BACS Payment</strong><br/>
+        {{paymentName}}<br/>
+        Sort code: {{sortCode}} &nbsp;|&nbsp; Account: {{accountNumber}}
+      </div>
+
+      <div class="sum">
+        <div class="sumrow"><span>Subtotal</span><span>{{currencySymbol}}{{fee}}</span></div>
+        <div class="sumrow"><span>{{adjustmentLabel}}</span><span>-{{currencySymbol}}{{adjustmentAmount}}</span></div>
+        <div class="sumrow total"><span>TOTAL PAYABLE</span><span>{{currencySymbol}}{{total}}</span></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        <strong>{{supplierName}}</strong><br/>
+        <span class="muted">{{supplierSubtitle}}</span>
+      </div>
+      <div style="text-align:right;">
+        <span class="muted">Contact</span><br/>
+        {{supplierEmail}}<br/>
+        <span class="small">{{extraFooterLine}}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

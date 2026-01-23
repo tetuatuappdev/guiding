@@ -42,17 +42,30 @@ async function notifyTourPaid({ guideUserId, slotId, amount, currency }) {
 
 async function notifyNewToursPublished({ guideUserIds, monthLabel, count }) {
   const tokens = await getTokensForUsers(guideUserIds);
-  const when = monthLabel ? ` pour ${monthLabel}` : "";
-  const suffix = count ? ` (${count} nouveaux créneaux)` : "";
+  const when = monthLabel ? ` for ${monthLabel}` : "";
+  const suffix = count ? ` (${count} new slots)` : "";
 
   return sendExpoPush(tokens, {
-    title: "Nouveaux tours publiés 📅",
-    body: `De nouveaux tours sont disponibles${when}${suffix}.`,
+    title: "New tours published 📅",
+    body: `New tours published${when}${suffix}. You can consult your affected tour on the app.`,
     data: { type: "new_tours_published" },
+  });
+}
+
+async function notifyTourReminder({ guideUserId, times, date }) {
+  const tokens = await getTokensForUser(guideUserId);
+  const timeText = Array.isArray(times) ? times.join(", ") : String(times || "");
+  const whenText = timeText ? ` à ${timeText}` : "";
+
+  return sendExpoPush(tokens, {
+    title: "Rappel tour demain ⏰",
+    body: `Tu as un tour demain${whenText}.`,
+    data: { type: "tour_reminder", date, times },
   });
 }
 
 module.exports = {
   notifyTourPaid,
   notifyNewToursPublished,
+  notifyTourReminder,
 };

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/requireAuth");
-const { supabaseAdmin } = require("../supabaseAdmin");
+const { supabaseAdmin } = require("../supabaseAdminBUFFER");
 
 // NOTE: Login should be done directly via Supabase in the mobile app.
 // We keep this endpoint as a helpful error so old clients fail loudly.

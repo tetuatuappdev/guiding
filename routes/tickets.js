@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/requireAuth");
-const { supabaseAdmin } = require("../supabaseAdmin");
+const { supabaseAdmin } = require("../supabaseAdminBUFFER");
 
 // Helper: parse VIC prefix format and return { code, personCount }
 function parseTicketCode(raw) {

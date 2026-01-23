@@ -10,6 +10,7 @@ const { requireAuth } = require("./middleware/requireAuth");
 
 const { pushRouter } = require("./routes/push");
 const { startTourCompletionWorker } = require("./services/tourCompletion");
+const { startTourReminderWorker } = require("./services/tourReminders");
 app.use(express.json())
 app.use("/api/push", pushRouter);
 
@@ -257,6 +258,8 @@ app.use("/api/tours", toursRoutes(supabaseService, requireUser, requireAuth));
 
 // Auto-complete past tours + enqueue pending payments (paper/scanned tickets only).
 startTourCompletionWorker(supabaseService);
+// Daily noon reminder for tomorrow's tours.
+startTourReminderWorker(supabaseService);
 app.use("/api/tickets", ticketsRoutes);
 
 // Health
