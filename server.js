@@ -9,10 +9,12 @@ const PORT = process.env.PORT || 3000;
 const { requireAuth } = require("./middleware/requireAuth");
 
 const { pushRouter } = require("./routes/push");
+const { webPushRouter } = require("./routes/webPush");
 const { startTourCompletionWorker } = require("./services/tourCompletion");
 const { startTourReminderWorker } = require("./services/tourReminders");
 app.use(express.json())
 app.use("/api/push", pushRouter);
+app.use("/api/web-push", webPushRouter);
 
 app.use(cors());
 app.use(express.json());

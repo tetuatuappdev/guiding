@@ -1,53 +1,23 @@
 {
-  
   "name": "guiding-backend",
-  
   "version": "1.0.0",
-  
   "description": "Guiding API backed by Supabase",
-  
   "main": "server.js",
-  
   "type": "commonjs",
-  
   "scripts": {
-  
-    
-  "start": "node server.js",
-  
-    
-  "dev": "node server.js",
-  
-    
-  "postinstall": "npx playwright install chromium"
-  
+    "start": "node server.js",
+    "dev": "node server.js",
+    "postinstall": "if [ -z \"$SKIP_PLAYWRIGHT\" ]; then npx playwright install chromium; else echo \"Skipping playwright\"; fi"
   },
-  
   "dependencies": {
-  
-    
-  "@supabase/supabase-js": "^2.56.0",
-  
-    
-  "body-parser": "^2.2.1",
-  
-    
-  "cors": "^2.8.5",
-  
-    
-  "dotenv": "^16.4.5",
-  
-    
-  "expo-server-sdk": "^4.0.0",
-  
-    
-  "express": "^5.2.1",
-  
-    
-  "pdfkit": "^0.17.2",
-  
-    
-  "playwright": "^1.57.0"
-  
+    "@supabase/supabase-js": "^2.56.0",
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "expo-server-sdk": "^4.0.0",
+    "express": "^5.2.1",
+    "pdfkit": "^0.17.2",
+    "playwright": "^1.57.0",
+    "web-push": "^3.6.7"
   }
 }

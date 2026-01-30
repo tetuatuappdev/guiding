@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 const { sendExpoPush } = require("../lib/expoPush");
+const { sendWebPush } = require("../lib/webPush");
 
 async function getTokensForUser(userId) {
   const { data, error } = await supabaseAdmin
@@ -20,6 +21,21 @@ async function getTokensForUsers(userIds) {
 
   if (error) throw error;
   return (data || []).map((r) => r.expo_push_token).filter(Boolean);
+}
+
+async function getWebPushSubsForUser(userId) {
+  const { data, error } = await supabaseAdmin
+    .from("web_push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return data || [];
+}
+
+async function cleanupExpiredSubs(endpoints) {
+  if (!endpoints || !endpoints.length) return;
+  await supabaseAdmin.from("web_push_subscriptions").delete().in("endpoint", endpoints);
 }
 
 async function notifyTourPaid({ guideUserId, slotId, amount, currency }) {
@@ -55,13 +71,17 @@ async function notifyNewToursPublished({ guideUserIds, monthLabel, count }) {
 async function notifyTourReminder({ guideUserId, times, date }) {
   const tokens = await getTokensForUser(guideUserId);
   const timeText = Array.isArray(times) ? times.join(", ") : String(times || "");
-  const whenText = timeText ? ` à ${timeText}` : "";
+  const whenText = timeText ? ` at ${timeText}` : "";
 
-  return sendExpoPush(tokens, {
-    title: "Rappel tour demain ⏰",
-    body: `Tu as un tour demain${whenText}.`,
-    data: { type: "tour_reminder", date, times },
-  });
+  const title = "Tour reminder";
+  const body = `You have a tour tomorrow${whenText}.`;
+  const data = { type: "tour_reminder", date, times };
+
+  const webSubs = await getWebPushSubsForUser(guideUserId);
+  const { expired } = await sendWebPush(webSubs, { title, body, data });
+  await cleanupExpiredSubs(expired);
+
+  return sendExpoPush(tokens, { title, body, data });
 }
 
 module.exports = {
