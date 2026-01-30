@@ -12,12 +12,10 @@ const { pushRouter } = require("./routes/push");
 const { webPushRouter } = require("./routes/webPush");
 const { startTourCompletionWorker } = require("./services/tourCompletion");
 const { startTourReminderWorker } = require("./services/tourReminders");
-app.use(express.json())
+app.use(cors({ origin: true }));
+app.use(express.json());
 app.use("/api/push", pushRouter);
 app.use("/api/web-push", webPushRouter);
-
-app.use(cors());
-app.use(express.json());
 app.use("/public", express.static("public"));
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
