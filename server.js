@@ -11,7 +11,7 @@ const { requireAuth } = require("./middleware/requireAuth");
 const { pushRouter } = require("./routes/push");
 const { webPushRouter } = require("./routes/webPush");
 const { startTourCompletionWorker } = require("./services/tourCompletion");
-const { startTourReminderWorker } = require("./services/tourReminders");
+const { startTourReminderWorker, sendTomorrowReminders } = require("./services/tourReminders");
 app.use(cors({ origin: true }));
 app.use(express.json());
 app.use("/api/push", pushRouter);
@@ -140,6 +140,16 @@ app.get("/keepitwarm", (_req, res) => res.status(200).send("ok"));
 app.head("/keepitwarm", (req, res) => {
   console.log("[HEAD keepitwarm]", new Date().toISOString());
   res.status(200).end();
+});
+
+app.post("/api/admin/reminders/tomorrow", requireAdmin, async (_req, res) => {
+  try {
+    const timeZone = process.env.APP_TIMEZONE || "Europe/London";
+    const result = await sendTomorrowReminders(supabaseService, timeZone);
+    return res.json({ ok: true, ...result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
 });
 
 /**

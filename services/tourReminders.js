@@ -34,13 +34,13 @@ async function sendTomorrowReminders(supabaseAdmin, timeZone) {
 
   if (slotsErr) {
     console.error("tourReminders: failed to load slots", slotsErr);
-    return;
+    return { slotsCount: 0, usersNotified: 0 };
   }
 
-  if (!slots || slots.length === 0) return;
+  if (!slots || slots.length === 0) return { slotsCount: 0, usersNotified: 0 };
 
   const guideIds = Array.from(new Set(slots.map((s) => s.guide_id).filter(Boolean)));
-  if (guideIds.length === 0) return;
+  if (guideIds.length === 0) return { slotsCount: slots.length, usersNotified: 0 };
 
   const { data: guides, error: gErr } = await supabaseAdmin
     .from("guides")
@@ -49,7 +49,7 @@ async function sendTomorrowReminders(supabaseAdmin, timeZone) {
 
   if (gErr) {
     console.error("tourReminders: failed to load guides", gErr);
-    return;
+    return { slotsCount: slots.length, usersNotified: 0 };
   }
 
   const userByGuideId = new Map((guides || []).map((g) => [g.id, g.user_id]));
@@ -65,6 +65,7 @@ async function sendTomorrowReminders(supabaseAdmin, timeZone) {
     timesByUserId.set(userId, list);
   });
 
+  let usersNotified = 0;
   for (const [userId, times] of timesByUserId.entries()) {
     const uniqueTimes = Array.from(new Set(times)).sort();
     if (!uniqueTimes.length) continue;
@@ -73,7 +74,10 @@ async function sendTomorrowReminders(supabaseAdmin, timeZone) {
       times: uniqueTimes,
       date: tomorrow.date,
     });
+    usersNotified += 1;
   }
+
+  return { slotsCount: slots.length, usersNotified };
 }
 
 function startTourReminderWorker(supabaseAdmin, intervalMs = DEFAULT_INTERVAL_MS) {
@@ -103,4 +107,4 @@ function startTourReminderWorker(supabaseAdmin, intervalMs = DEFAULT_INTERVAL_MS
   setInterval(tick, intervalMs).unref?.();
 }
 
-module.exports = { startTourReminderWorker };
+module.exports = { startTourReminderWorker, sendTomorrowReminders };
