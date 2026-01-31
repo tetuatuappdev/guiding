@@ -159,16 +159,37 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabaseService.auth.admin.getUserByEmail(email);
-    if (error || !data?.user) {
+    const { supabaseAdmin } = require("./lib/supabaseAdmin");
+    const adminAuth = supabaseAdmin.auth?.admin;
+    if (!adminAuth) {
+      return res.status(500).json({ ok: false, error: "Admin auth API unavailable." });
+    }
+
+    let user = null;
+    if (typeof adminAuth.getUserByEmail === "function") {
+      const { data, error } = await adminAuth.getUserByEmail(email);
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+      user = data?.user ?? null;
+    } else if (typeof adminAuth.listUsers === "function") {
+      const { data, error } = await adminAuth.listUsers({ page: 1, perPage: 1000 });
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+      const list = data?.users ?? [];
+      user = list.find((u) => String(u.email || "").toLowerCase() === email) ?? null;
+    }
+
+    if (!user) {
       return res.status(404).json({ ok: false, error: "User not found." });
     }
 
-    const userId = data.user.id;
+    const userId = user.id;
     const { sendExpoPush } = require("./lib/expoPush");
     const { sendWebPush } = require("./lib/webPush");
 
-    const { data: expoRows } = await supabaseService
+    const { data: expoRows } = await supabaseAdmin
       .from("push_tokens")
       .select("expo_push_token")
       .eq("user_id", userId);
@@ -177,7 +198,7 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
       .map((r) => r.expo_push_token)
       .filter(Boolean);
 
-    const { data: webRows } = await supabaseService
+    const { data: webRows } = await supabaseAdmin
       .from("web_push_subscriptions")
       .select("endpoint, p256dh, auth")
       .eq("user_id", userId);
