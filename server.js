@@ -186,18 +186,8 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
     }
 
     const userId = user.id;
-    const { sendExpoPush } = require("./lib/expoPush");
     const { sendWebPush } = require("./lib/webPush");
     const { withWebPushDefaults } = require("./lib/webPushPayload");
-
-    const { data: expoRows } = await supabaseAdmin
-      .from("push_tokens")
-      .select("expo_push_token")
-      .eq("user_id", userId);
-
-    const expoTokens = (expoRows || [])
-      .map((r) => r.expo_push_token)
-      .filter(Boolean);
 
     const { data: webRows } = await supabaseAdmin
       .from("web_push_subscriptions")
@@ -211,12 +201,76 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
     });
 
     const webResult = await sendWebPush(webRows || [], payload);
-    const expoResult = await sendExpoPush(expoTokens, payload);
 
     return res.json({
       ok: true,
-      expo: { tokens: expoTokens.length, result: expoResult },
       web: { subs: (webRows || []).length, result: webResult },
+    });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+app.post("/api/admin/push/new-tours", requireAdmin, async (req, res) => {
+  const userIds = Array.isArray(req.body?.userIds)
+    ? req.body.userIds.filter(Boolean)
+    : [];
+  if (userIds.length === 0) {
+    return res.json({ ok: true, sent: 0, users: 0 });
+  }
+
+  const monthLabel = typeof req.body?.monthLabel === "string" ? req.body.monthLabel : "";
+  const count = typeof req.body?.count === "number" ? req.body.count : undefined;
+
+  try {
+    const { notifyNewToursPublished } = require("./services/notifications");
+    const result = await notifyNewToursPublished({
+      guideUserIds: userIds,
+      monthLabel,
+      count,
+    });
+    return res.json({ ok: true, users: userIds.length, ...result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+app.post("/api/admin/push/schedule-updated", requireAdmin, async (req, res) => {
+  const userIds = Array.isArray(req.body?.userIds)
+    ? req.body.userIds.filter(Boolean)
+    : [];
+  if (userIds.length === 0) {
+    return res.json({ ok: true, sent: 0, users: 0 });
+  }
+
+  const { sendWebPush } = require("./lib/webPush");
+  const { withWebPushDefaults } = require("./lib/webPushPayload");
+
+  const { data: subs, error } = await supabaseService
+    .from("web_push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .in("user_id", userIds);
+
+  if (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+
+  const payload = withWebPushDefaults({
+    title: "Schedule updated",
+    body: "Your schedule has been updated, please consult the app.",
+    data: { type: "schedule_updated" },
+  });
+
+  try {
+    const { expired, sent } = await sendWebPush(subs || [], payload);
+    if (expired?.length) {
+      await supabaseService.from("web_push_subscriptions").delete().in("endpoint", expired);
+    }
+    return res.json({
+      ok: true,
+      users: userIds.length,
+      subs: (subs || []).length,
+      sent,
     });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) });
