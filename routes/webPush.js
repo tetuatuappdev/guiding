@@ -1,6 +1,7 @@
 const express = require("express");
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 const { requireAuth } = require("../middleware/requireAuth");
+const { withWebPushDefaults } = require("../lib/webPushPayload");
 
 const router = express.Router();
 
@@ -41,11 +42,11 @@ router.post("/test", requireAuth, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   const subs = data || [];
-  const payload = {
+  const payload = withWebPushDefaults({
     title: "Test notification",
     body: "This is a test push from guiding.",
     data: { type: "test" },
-  };
+  });
   const result = await sendWebPush(subs, payload);
   return res.json({ ok: true, count: subs.length, result });
 });

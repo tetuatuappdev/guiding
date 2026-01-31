@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 const { sendExpoPush } = require("../lib/expoPush");
 const { sendWebPush } = require("../lib/webPush");
+const { withWebPushDefaults } = require("../lib/webPushPayload");
 
 async function getTokensForUser(userId) {
   const { data, error } = await supabaseAdmin
@@ -49,7 +50,10 @@ async function notifyTourPaid({ guideUserId, slotId, amount, currency }) {
   const data = { type: "tour_paid", slotId };
 
   const webSubs = await getWebPushSubsForUser(guideUserId);
-  const { expired } = await sendWebPush(webSubs, { title, body, data });
+  const { expired } = await sendWebPush(
+    webSubs,
+    withWebPushDefaults({ title, body, data })
+  );
   await cleanupExpiredSubs(expired);
 
   return sendExpoPush(tokens, { title, body, data });
@@ -77,7 +81,10 @@ async function notifyTourReminder({ guideUserId, times, date }) {
   const data = { type: "tour_reminder", date, times };
 
   const webSubs = await getWebPushSubsForUser(guideUserId);
-  const { expired } = await sendWebPush(webSubs, { title, body, data });
+  const { expired } = await sendWebPush(
+    webSubs,
+    withWebPushDefaults({ title, body, data })
+  );
   await cleanupExpiredSubs(expired);
 
   return sendExpoPush(tokens, { title, body, data });

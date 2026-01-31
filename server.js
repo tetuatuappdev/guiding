@@ -188,6 +188,7 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
     const userId = user.id;
     const { sendExpoPush } = require("./lib/expoPush");
     const { sendWebPush } = require("./lib/webPush");
+    const { withWebPushDefaults } = require("./lib/webPushPayload");
 
     const { data: expoRows } = await supabaseAdmin
       .from("push_tokens")
@@ -203,11 +204,11 @@ app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
       .select("endpoint, p256dh, auth")
       .eq("user_id", userId);
 
-    const payload = {
+    const payload = withWebPushDefaults({
       title: "Test notification",
       body: "Test push sent from admin.",
       data: { type: "admin_test" },
-    };
+    });
 
     const webResult = await sendWebPush(webRows || [], payload);
     const expoResult = await sendExpoPush(expoTokens, payload);
