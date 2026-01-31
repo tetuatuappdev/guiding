@@ -44,16 +44,15 @@ async function notifyTourPaid({ guideUserId, slotId, amount, currency }) {
   const amountText =
     typeof amount === "number" ? ` (${amount}${currency || "€"})` : "";
 
-    console.log("notifyTourPaid", {
-  guideUserId,
-  tokensCount: tokens.length,
-});
+  const title = "Tour paid";
+  const body = `Your tour was marked as paid${amountText}.`;
+  const data = { type: "tour_paid", slotId };
 
-  return sendExpoPush(tokens, {
-    title: "Tour payé ✅",
-    body: `Ton tour a été marqué comme payé${amountText}.`,
-    data: { type: "tour_paid", slotId },
-  });
+  const webSubs = await getWebPushSubsForUser(guideUserId);
+  const { expired } = await sendWebPush(webSubs, { title, body, data });
+  await cleanupExpiredSubs(expired);
+
+  return sendExpoPush(tokens, { title, body, data });
 }
 
 async function notifyNewToursPublished({ guideUserIds, monthLabel, count }) {

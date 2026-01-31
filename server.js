@@ -152,6 +152,55 @@ app.post("/api/admin/reminders/tomorrow", requireAdmin, async (_req, res) => {
   }
 });
 
+app.post("/api/admin/push/user", requireAdmin, async (req, res) => {
+  const email = normEmail(req.body?.email);
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ ok: false, error: "Invalid email." });
+  }
+
+  try {
+    const { data, error } = await supabaseService.auth.admin.getUserByEmail(email);
+    if (error || !data?.user) {
+      return res.status(404).json({ ok: false, error: "User not found." });
+    }
+
+    const userId = data.user.id;
+    const { sendExpoPush } = require("./lib/expoPush");
+    const { sendWebPush } = require("./lib/webPush");
+
+    const { data: expoRows } = await supabaseService
+      .from("push_tokens")
+      .select("expo_push_token")
+      .eq("user_id", userId);
+
+    const expoTokens = (expoRows || [])
+      .map((r) => r.expo_push_token)
+      .filter(Boolean);
+
+    const { data: webRows } = await supabaseService
+      .from("web_push_subscriptions")
+      .select("endpoint, p256dh, auth")
+      .eq("user_id", userId);
+
+    const payload = {
+      title: "Test notification",
+      body: "Test push sent from admin.",
+      data: { type: "admin_test" },
+    };
+
+    const webResult = await sendWebPush(webRows || [], payload);
+    const expoResult = await sendExpoPush(expoTokens, payload);
+
+    return res.json({
+      ok: true,
+      expo: { tokens: expoTokens.length, result: expoResult },
+      web: { subs: (webRows || []).length, result: webResult },
+    });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 /**
  * AUTH (allowlist-driven)
  *
