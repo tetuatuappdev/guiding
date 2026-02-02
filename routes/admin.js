@@ -82,7 +82,7 @@ const totalPayablePence = grossPence - vicCommissionPence;
   invoiceNo: `INV-${slotId.slice(0, 8)}`,
   guideFirstName: guide.first_name,
   guideLastName: guide.last_name,
-  clientName: "Marketing Cheshire",
+  clientName: "The Chester Guild of tourist guides",
   invoiceDateISO: slot.slot_date,
   bookingRef: "",
   tourLabel: "Chester Tour",
